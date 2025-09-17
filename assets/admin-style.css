@@ -1,0 +1,78 @@
+/* Proyectos Grid - Admin Styles */
+
+.post-type-proyecto .form-table th {
+  width: 200px;
+  font-weight: 600;
+}
+
+.post-type-proyecto .form-table td input[type="number"],
+.post-type-proyecto .form-table td select,
+.post-type-proyecto .form-table td input[type="url"] {
+  width: 100%;
+  max-width: 400px;
+}
+
+.post-type-proyecto .form-table .description {
+  font-style: italic;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Configuración de proyectos */
+.proyectos-config .form-table th {
+  width: 200px;
+  font-weight: 600;
+}
+
+.proyectos-config .form-table td select,
+.proyectos-config .form-table td input[type="url"] {
+  width: 100%;
+  max-width: 500px;
+}
+
+/* Mejoras visuales para el admin */
+#proyecto_detalles .inside {
+  margin: 0;
+  padding: 0;
+}
+
+#proyecto_detalles .form-table {
+  margin-top: 0;
+}
+
+#proyecto_detalles .form-table tr:first-child th,
+#proyecto_detalles .form-table tr:first-child td {
+  padding-top: 15px;
+}
+
+/* Estilos para las columnas personalizadas en la lista de posts */
+.fixed .column-proyecto_categoria,
+.fixed .column-proyecto_etiqueta {
+  width: 15%;
+}
+
+.column-proyecto_categoria .term-list,
+.column-proyecto_etiqueta .term-list {
+  margin: 0;
+}
+
+.column-proyecto_categoria .term-list li,
+.column-proyecto_etiqueta .term-list li {
+  display: inline-block;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+
+.column-proyecto_categoria .term-list a,
+.column-proyecto_etiqueta .term-list a {
+  background: #f0f0f1;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.column-proyecto_categoria .term-list a:hover,
+.column-proyecto_etiqueta .term-list a:hover {
+  background: #dcdcde;
+}

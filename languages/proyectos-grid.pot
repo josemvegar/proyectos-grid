@@ -1,0 +1,96 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Proyectos Grid 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Proyectos"
+msgstr ""
+
+msgid "Proyecto"
+msgstr ""
+
+msgid "Añadir Nuevo"
+msgstr ""
+
+msgid "Añadir Nuevo Proyecto"
+msgstr ""
+
+msgid "Editar Proyecto"
+msgstr ""
+
+msgid "Nuevo Proyecto"
+msgstr ""
+
+msgid "Ver Proyecto"
+msgstr ""
+
+msgid "Buscar Proyectos"
+msgstr ""
+
+msgid "No se encontraron proyectos"
+msgstr ""
+
+msgid "No se encontraron proyectos en la papelera"
+msgstr ""
+
+msgid "Categorías de Proyecto"
+msgstr ""
+
+msgid "Categoría de Proyecto"
+msgstr ""
+
+msgid "Etiquetas de Proyecto"
+msgstr ""
+
+msgid "Etiqueta de Proyecto"
+msgstr ""
+
+msgid "Configuración de Proyectos"
+msgstr ""
+
+msgid "Configuración"
+msgstr ""
+
+msgid "Moneda Global"
+msgstr ""
+
+msgid "Enlace Base Global"
+msgstr ""
+
+msgid "Detalles del Proyecto"
+msgstr ""
+
+msgid "Valor"
+msgstr ""
+
+msgid "Moneda (opcional)"
+msgstr ""
+
+msgid "Usar moneda global"
+msgstr ""
+
+msgid "Enlace Personalizado"
+msgstr ""
+
+msgid "Inscríbete hoy"
+msgstr ""
+
+msgid "No se encontraron proyectos."
+msgstr ""
+
+msgid "Configuración guardada correctamente."
+msgstr ""
