@@ -311,21 +311,9 @@ class ProyectosPlugin {
             'post_type' => 'proyecto',
             'post_status' => 'publish',
             'posts_per_page' => intval($atts['posts_per_page']),
-            'meta_key' => '_proyecto_orden',
             'orderby' => array(
-                'meta_value_num' => 'ASC',
+                'menu_order' => 'ASC',
                 'date' => 'DESC'
-            ),
-            'meta_query' => array(
-                'relation' => 'OR',
-                array(
-                    'key' => '_proyecto_orden',
-                    'compare' => 'EXISTS'
-                ),
-                array(
-                    'key' => '_proyecto_orden',
-                    'compare' => 'NOT EXISTS'
-                )
             )
         );
         
@@ -363,15 +351,26 @@ class ProyectosPlugin {
         $valor = get_post_meta($post_id, '_proyecto_valor', true);
         $moneda_individual = get_post_meta($post_id, '_proyecto_moneda', true);
         $enlace_personalizado = get_post_meta($post_id, '_proyecto_enlace_personalizado', true);
+        $menu_order = get_post_meta($post_id, '_proyecto_orden', true);
+        
+        if (!empty($menu_order)) {
+            wp_update_post(array(
+                'ID' => $post_id,
+                'menu_order' => intval($menu_order)
+            ));
+        }
         
         $moneda = !empty($moneda_individual) ? $moneda_individual : get_option('proyectos_moneda_global', 'CLP');
         
+        $enlace_proyecto = get_permalink($post_id); // Para imagen y título
+        
+        // Enlace del botón (personalizado o base)
         if (!empty($enlace_personalizado)) {
-            $enlace = $enlace_personalizado;
+            $enlace_boton = $enlace_personalizado;
         } else {
             $enlace_base = get_option('proyectos_enlace_base', home_url('/contacto'));
             $service_param = urlencode($post->post_title);
-            $enlace = $enlace_base . '?service=' . $service_param;
+            $enlace_boton = $enlace_base . '?service=' . $service_param;
         }
         
         $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
@@ -386,13 +385,15 @@ class ProyectosPlugin {
         ?>
         <div class="proyecto-card">
             <div class="proyecto-imagen-container">
-                <a href="<?php echo esc_url($enlace); ?>" class="proyecto-link">
+                <!-- Imagen ahora va al permalink del proyecto -->
+                <a href="<?php echo esc_url($enlace_proyecto); ?>" class="proyecto-link">
                     <?php echo $imagen; ?>
                 </a>
             </div>
             <div class="proyecto-contenido">
                 <h3 class="proyecto-titulo">
-                    <a href="<?php echo esc_url($enlace); ?>" class="proyecto-link">
+                    <!-- Título ahora va al permalink del proyecto -->
+                    <a href="<?php echo esc_url($enlace_proyecto); ?>" class="proyecto-link">
                         <?php echo esc_html($post->post_title); ?>
                     </a>
                 </h3>
@@ -409,7 +410,8 @@ class ProyectosPlugin {
                         </div>
                     <?php endif; ?>
                     <div class="proyecto-boton">
-                        <a href="<?php echo esc_url($enlace); ?>" class="btn-inscribirse">
+                        <!-- Botón usa el enlace personalizado/base -->
+                        <a href="<?php echo esc_url($enlace_boton); ?>" class="btn-inscribirse">
                             <?php _e('Inscríbete hoy', 'proyectos-grid'); ?>
                         </a>
                     </div>
