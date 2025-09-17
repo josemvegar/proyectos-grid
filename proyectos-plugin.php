@@ -8,6 +8,11 @@
  * Domain Path: /languages
  */
 
+// Prevenir acceso directo
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 // Definir constantes del plugin
 define('PROYECTOS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PROYECTOS_PLUGIN_PATH', plugin_dir_path(__FILE__));
@@ -738,8 +743,10 @@ class ProyectosPlugin {
         $primera_categoria = $categorias && !is_wp_error($categorias) ? $categorias[0]->slug : '';
         
         $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
-        $primera_etiqueta = $etiquetas && !is_wp_error($etiquetas) ? $etiquetas[0]->name : '';
-        $primera_etiqueta_slug = $etiquetas && !is_wp_error($etiquetas) ? $etiquetas[0]->slug : '';
+        $etiquetas_mostrar = array();
+        if ($etiquetas && !is_wp_error($etiquetas)) {
+            $etiquetas_mostrar = array_slice($etiquetas, 0, 2); // Get maximum 2 tags
+        }
         
         if (!empty($enlace_personalizado)) {
             $enlace_boton = $enlace_personalizado;
@@ -751,8 +758,8 @@ class ProyectosPlugin {
                 $enlace_boton .= '&category=' . urlencode($primera_categoria);
             }
             // Add tag parameter if exists
-            if (!empty($primera_etiqueta_slug)) {
-                $enlace_boton .= '&tag=' . urlencode($primera_etiqueta_slug);
+            if (!empty($etiquetas_mostrar[0]->slug)) {
+                $enlace_boton .= '&tag=' . urlencode($etiquetas_mostrar[0]->slug);
             }
         }
         
@@ -783,10 +790,12 @@ class ProyectosPlugin {
                 <div class="proyecto-precio">
                     <?php _e('Valor:', 'proyectos-grid'); ?> $<?php echo number_format($valor, 0, ',', '.'); ?> <?php echo esc_html($moneda); ?>
                 </div>
-                <div class="proyecto-footer <?php echo empty($primera_etiqueta) ? 'sin-etiqueta' : ''; ?>">
-                    <?php if ($primera_etiqueta): ?>
+                <div class="proyecto-footer <?php echo empty($etiquetas_mostrar) ? 'sin-etiqueta' : ''; ?>">
+                    <?php if (!empty($etiquetas_mostrar)): ?>
                         <div class="proyecto-etiqueta">
-                            <span class="etiqueta"><?php echo esc_html($primera_etiqueta); ?></span>
+                            <?php foreach ($etiquetas_mostrar as $etiqueta): ?>
+                                <span class="etiqueta"><?php echo esc_html($etiqueta->name); ?></span>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                     <div class="proyecto-boton">
