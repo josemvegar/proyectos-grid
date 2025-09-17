@@ -8,11 +8,6 @@
  * Domain Path: /languages
  */
 
-// Prevenir acceso directo
-if (!defined('ABSPATH')) {
-    exit;
-}
-
 // Definir constantes del plugin
 define('PROYECTOS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PROYECTOS_PLUGIN_PATH', plugin_dir_path(__FILE__));
@@ -28,6 +23,7 @@ class ProyectosPlugin {
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('save_post', array($this, 'save_meta_boxes'));
         add_shortcode('proyectos_grid', array($this, 'proyectos_grid_shortcode'));
+        add_shortcode('proyectos_form', array($this, 'proyectos_form_shortcode'));
         
         // Hook para activación del plugin
         register_activation_hook(__FILE__, array($this, 'activate'));
@@ -86,6 +82,11 @@ class ProyectosPlugin {
     }
     
     private function register_taxonomies() {
+        add_action('proyecto_categoria_add_form_fields', array($this, 'add_category_fields'));
+        add_action('proyecto_categoria_edit_form_fields', array($this, 'edit_category_fields'));
+        add_action('created_proyecto_categoria', array($this, 'save_category_fields'));
+        add_action('edited_proyecto_categoria', array($this, 'save_category_fields'));
+        
         // Taxonomía jerárquica (Categorías)
         $category_labels = array(
             'name' => __('Categorías de Proyecto', 'proyectos-grid'),
@@ -111,12 +112,11 @@ class ProyectosPlugin {
             'show_in_rest' => true
         ));
         
-        // Taxonomía no jerárquica (Etiquetas)
+        // Taxonomía no jerárquica (Etiquetas/Tags)
         $tag_labels = array(
             'name' => __('Etiquetas de Proyecto', 'proyectos-grid'),
             'singular_name' => __('Etiqueta de Proyecto', 'proyectos-grid'),
             'search_items' => __('Buscar Etiquetas', 'proyectos-grid'),
-            'popular_items' => __('Etiquetas Populares', 'proyectos-grid'),
             'all_items' => __('Todas las Etiquetas', 'proyectos-grid'),
             'edit_item' => __('Editar Etiqueta', 'proyectos-grid'),
             'update_item' => __('Actualizar Etiqueta', 'proyectos-grid'),
@@ -136,6 +136,37 @@ class ProyectosPlugin {
         ));
     }
     
+    public function add_category_fields() {
+        ?>
+        <div class="form-field">
+            <label for="nombre_singular"><?php _e('Nombre Singular', 'proyectos-grid'); ?></label>
+            <input type="text" name="nombre_singular" id="nombre_singular" value="" />
+            <p class="description"><?php _e('Nombre singular para usar en formularios (ej: "curso", "terapia"). Si está vacío, se usará el título de la categoría.', 'proyectos-grid'); ?></p>
+        </div>
+        <?php
+    }
+    
+    public function edit_category_fields($term) {
+        $nombre_singular = get_term_meta($term->term_id, 'nombre_singular', true);
+        ?>
+        <tr class="form-field">
+            <th scope="row">
+                <label for="nombre_singular"><?php _e('Nombre Singular', 'proyectos-grid'); ?></label>
+            </th>
+            <td>
+                <input type="text" name="nombre_singular" id="nombre_singular" value="<?php echo esc_attr($nombre_singular); ?>" />
+                <p class="description"><?php _e('Nombre singular para usar en formularios (ej: "curso", "terapia"). Si está vacío, se usará el título de la categoría.', 'proyectos-grid'); ?></p>
+            </td>
+        </tr>
+        <?php
+    }
+    
+    public function save_category_fields($term_id) {
+        if (isset($_POST['nombre_singular'])) {
+            update_term_meta($term_id, 'nombre_singular', sanitize_text_field($_POST['nombre_singular']));
+        }
+    }
+    
     public function add_admin_menu() {
         add_submenu_page(
             'edit.php?post_type=proyecto',
@@ -151,11 +182,15 @@ class ProyectosPlugin {
         if (isset($_POST['submit']) && wp_verify_nonce($_POST['proyectos_config_nonce'], 'proyectos_config_action')) {
             update_option('proyectos_moneda_global', sanitize_text_field($_POST['moneda_global']));
             update_option('proyectos_enlace_base', esc_url_raw($_POST['enlace_base']));
+            update_option('proyectos_email_receptores', sanitize_textarea_field($_POST['email_receptores']));
+            update_option('proyectos_email_template', sanitize_textarea_field($_POST['email_template']));
             echo '<div class="notice notice-success"><p>' . __('Configuración guardada correctamente.', 'proyectos-grid') . '</p></div>';
         }
         
         $moneda_global = get_option('proyectos_moneda_global', 'CLP');
         $enlace_base = get_option('proyectos_enlace_base', home_url('/contacto'));
+        $email_receptores = get_option('proyectos_email_receptores', get_option('admin_email'));
+        $email_template = get_option('proyectos_email_template', "Nuevo mensaje de contacto:\n\nNombre: [nombre]\nApellido: [apellido]\nTeléfono: [telefono]\nEmail: [email]\nInterés Principal: [interes_principal]\nModalidad: [modalidad]\nProyecto Específico: [proyecto_especifico]\nMotivación: [motivacion]");
         
         ?>
         <div class="wrap">
@@ -184,6 +219,36 @@ class ProyectosPlugin {
                         <td>
                             <input type="url" name="enlace_base" id="enlace_base" value="<?php echo esc_attr($enlace_base); ?>" class="regular-text" />
                             <p class="description"><?php _e('Ejemplo: https://misitio.com/contacto', 'proyectos-grid'); ?></p>
+                        </td>
+                    </tr>
+                    <!-- Adding email receptors configuration field -->
+                    <tr>
+                        <th scope="row">
+                            <label for="email_receptores"><?php _e('Correos Receptores', 'proyectos-grid'); ?></label>
+                        </th>
+                        <td>
+                            <textarea name="email_receptores" id="email_receptores" rows="3" class="large-text"><?php echo esc_textarea($email_receptores); ?></textarea>
+                            <p class="description"><?php _e('Ingresa los correos donde se enviarán los formularios. Separa múltiples correos con comas. Ejemplo: admin@sitio.com, ventas@sitio.com', 'proyectos-grid'); ?></p>
+                        </td>
+                    </tr>
+                    <!-- Adding email template configuration field -->
+                    <tr>
+                        <th scope="row">
+                            <label for="email_template"><?php _e('Plantilla de Correo', 'proyectos-grid'); ?></label>
+                        </th>
+                        <td>
+                            <textarea name="email_template" id="email_template" rows="10" class="large-text"><?php echo esc_textarea($email_template); ?></textarea>
+                            <p class="description">
+                                <?php _e('Plantilla para el correo que se enviará. Usa los siguientes placeholders:', 'proyectos-grid'); ?><br>
+                                <strong>[nombre]</strong> - <?php _e('Nombre del usuario', 'proyectos-grid'); ?><br>
+                                <strong>[apellido]</strong> - <?php _e('Apellido del usuario', 'proyectos-grid'); ?><br>
+                                <strong>[telefono]</strong> - <?php _e('Teléfono del usuario', 'proyectos-grid'); ?><br>
+                                <strong>[email]</strong> - <?php _e('Email del usuario', 'proyectos-grid'); ?><br>
+                                <strong>[interes_principal]</strong> - <?php _e('Categoría seleccionada', 'proyectos-grid'); ?><br>
+                                <strong>[modalidad]</strong> - <?php _e('Etiqueta/modalidad seleccionada', 'proyectos-grid'); ?><br>
+                                <strong>[proyecto_especifico]</strong> - <?php _e('Proyecto específico seleccionado', 'proyectos-grid'); ?><br>
+                                <strong>[motivacion]</strong> - <?php _e('Mensaje de motivación', 'proyectos-grid'); ?>
+                            </p>
                         </td>
                     </tr>
                 </table>
@@ -292,6 +357,13 @@ class ProyectosPlugin {
     
     public function enqueue_frontend_styles() {
         wp_enqueue_style('proyectos-grid-style', PROYECTOS_PLUGIN_URL . 'assets/style.css', array(), PROYECTOS_VERSION);
+        
+        wp_enqueue_script('proyectos-form-script', PROYECTOS_PLUGIN_URL . 'assets/form-script.js', array('jquery'), PROYECTOS_VERSION, true);
+        
+        wp_localize_script('proyectos-form-script', 'proyectos_ajax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('proyectos_form_nonce')
+        ));
     }
     
     public function enqueue_admin_scripts($hook) {
@@ -346,6 +418,304 @@ class ProyectosPlugin {
         return ob_get_clean();
     }
     
+    public function proyectos_form_shortcode($atts) {
+        $atts = shortcode_atts(array(), $atts, 'proyectos_form');
+        
+        // Get URL parameters
+        $service_param = isset($_GET['service']) ? sanitize_text_field($_GET['service']) : '';
+        $category_param = isset($_GET['category']) ? sanitize_text_field($_GET['category']) : '';
+        $tag_param = isset($_GET['tag']) ? sanitize_text_field($_GET['tag']) : '';
+        
+        ob_start();
+        ?>
+        <div class="proyectos-form-container">
+            <form method="post" action="">
+                <!-- Separating basic fields into individual form-row divs for proper 2-column layout -->
+                <div class="proyectos-form">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="nombre"><?php _e('Nombre', 'proyectos-grid'); ?> *</label>
+                            <input type="text" id="nombre" name="nombre" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="apellido"><?php _e('Apellido', 'proyectos-grid'); ?> *</label>
+                            <input type="text" id="apellido" name="apellido" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="telefono"><?php _e('Teléfono', 'proyectos-grid'); ?> *</label>
+                            <input type="tel" id="telefono" name="telefono" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="email"><?php _e('Email', 'proyectos-grid'); ?> *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Separating conditional fields into individual form-row divs so they appear side by side -->
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="interes_principal"><?php _e('Interés Principal', 'proyectos-grid'); ?> *</label>
+                            <select id="interes_principal" name="interes_principal" required>
+                                <option value=""><?php _e('Selecciona una categoría', 'proyectos-grid'); ?></option>
+                                <?php
+                                $categorias = get_terms(array(
+                                    'taxonomy' => 'proyecto_categoria',
+                                    'hide_empty' => true
+                                ));
+                                foreach ($categorias as $categoria) {
+                                    $selected = ($categoria->slug === $category_param) ? 'selected' : '';
+                                    echo '<option value="' . esc_attr($categoria->slug) . '" ' . $selected . '>' . esc_html($categoria->name) . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Project field with full-width class to span both columns -->
+                    <div class="form-row">
+                        <div class="form-field full-width" id="proyecto-field" style="display: none;">
+                            <label for="proyecto_especifico" id="proyecto-label"><?php _e('Proyecto Específico', 'proyectos-grid'); ?></label>
+                            <select id="proyecto_especifico" name="proyecto_especifico">
+                                <option value=""><?php _e('Selecciona un proyecto', 'proyectos-grid'); ?></option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Textarea with full-width class to span both columns -->
+                <div class="form-row">
+                    <div class="form-field full-width">
+                        <label for="motivacion"><?php _e('Motivación', 'proyectos-grid'); ?></label>
+                        <textarea id="motivacion" name="motivacion" rows="4" placeholder="<?php _e('Cuéntame brevemente ¿Qué te motiva a buscar esta experiencia, terapia, producto?', 'proyectos-grid'); ?>"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Submit button with full-width class to span both columns -->
+                <div class="form-row">
+                    <div class="form-field full-width">
+                        <button type="submit" class="btn-enviar"><?php _e('Enviar Consulta', 'proyectos-grid'); ?></button>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Added loader overlay for AJAX requests -->
+            <div id="form-loader" class="form-loader" style="display: none;">
+                <div class="loader-content">
+                    <div class="spinner"></div>
+                    <p><?php _e('Cargando...', 'proyectos-grid'); ?></p>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            var initialCategory = '<?php echo esc_js($category_param); ?>';
+            var initialTag = '<?php echo esc_js($tag_param); ?>';
+            var initialService = '<?php echo esc_js($service_param); ?>';
+            
+            function showLoader() {
+                $('#form-loader').show();
+                // Disable all form fields during loading
+                $('.proyectos-form select, .proyectos-form input, .proyectos-form textarea, .btn-enviar').prop('disabled', true);
+            }
+            
+            function hideLoader() {
+                $('#form-loader').hide();
+                // Re-enable form fields after loading
+                $('.proyectos-form select, .proyectos-form input, .proyectos-form textarea, .btn-enviar').prop('disabled', false);
+            }
+            
+            function updateProjectLabel(categorySlug) {
+                if (categorySlug) {
+                    $.ajax({
+                        url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                        type: 'POST',
+                        data: {
+                            action: 'get_category_singular_name',
+                            category: categorySlug
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $('#proyecto-label').text('Selecciona tu ' + response.data);
+                            } else {
+                                var categoryName = $('#interes_principal option[value="' + categorySlug + '"]').text();
+                                $('#proyecto-label').text('Selecciona tu ' + categoryName);
+                            }
+                        },
+                        error: function() {
+                            var categoryName = $('#interes_principal option[value="' + categorySlug + '"]').text();
+                            $('#proyecto-label').text('Selecciona tu ' + categoryName);
+                        }
+                    });
+                } else {
+                    $('#proyecto-label').text('<?php _e('Proyecto Específico', 'proyectos-grid'); ?>');
+                }
+            }
+            
+            function updateRequiredFields() {
+                // Remove required from all conditional fields first
+                $('#modalidad, #proyecto_especifico').removeAttr('required');
+                
+                // Add required to visible fields
+                if ($('#modalidad-field').length && $('#modalidad-field').is(':visible')) {
+                    $('#modalidad').attr('required', true);
+                }
+                if ($('#proyecto-field').is(':visible')) {
+                    $('#proyecto_especifico').attr('required', true);
+                }
+            }
+            
+            function loadTags(categorySlug) {
+                if (!categorySlug) {
+                    // Remove modalidad field from DOM completely
+                    $('#modalidad-field').parent().remove();
+                    $('#proyecto-field').hide();
+                    updateRequiredFields();
+                    return;
+                }
+                
+                showLoader();
+                updateProjectLabel(categorySlug);
+                
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    type: 'POST',
+                    data: {
+                        action: 'get_proyecto_tags',
+                        category: categorySlug
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.length > 0) {
+                            // Check if modalidad field exists, if not create it
+                            if ($('#modalidad-field').length === 0) {
+                                var modalidadRow = $('<div class="form-row">' +
+                                    '<div class="form-field" id="modalidad-field">' +
+                                    '<label for="modalidad"><?php _e('Modalidad', 'proyectos-grid'); ?></label>' +
+                                    '<select id="modalidad" name="modalidad">' +
+                                    '<option value=""><?php _e('Selecciona una modalidad', 'proyectos-grid'); ?></option>' +
+                                    '</select>' +
+                                    '</div>' +
+                                    '</div>');
+                                
+                                // Insert after the interes_principal field
+                                $('#interes_principal').closest('.form-row').after(modalidadRow);
+                                
+                                // Re-bind the change event for the new modalidad field
+                                $('#modalidad').change(function() {
+                                    var categorySlug = $('#interes_principal').val();
+                                    var tagSlug = $(this).val();
+                                    loadProjects(categorySlug, tagSlug);
+                                });
+                            }
+                            
+                            $('#modalidad').empty().append('<option value=""><?php _e('Selecciona una modalidad', 'proyectos-grid'); ?></option>');
+                            $.each(response.data, function(index, tag) {
+                                var selected = (tag.slug === initialTag) ? 'selected' : '';
+                                $('#modalidad').append('<option value="' + tag.slug + '" ' + selected + '>' + tag.name + '</option>');
+                            });
+                            $('#modalidad-field').show();
+                            updateRequiredFields();
+                            
+                            // If there's an initial tag, trigger change
+                            if (initialTag) {
+                                $('#modalidad').trigger('change');
+                            } else {
+                                // Load projects without tag filter
+                                loadProjects(categorySlug, '');
+                            }
+                        } else {
+                            // Remove modalidad field from DOM completely if no tags
+                            $('#modalidad-field').parent().remove();
+                            loadProjects(categorySlug, '');
+                            updateRequiredFields();
+                        }
+                    },
+                    error: function() {
+                        hideLoader();
+                    }
+                });
+            }
+            
+            // Function to load projects for selected category and tag
+            function loadProjects(categorySlug, tagSlug) {
+                if (!categorySlug) {
+                    $('#proyecto-field').hide();
+                    updateRequiredFields();
+                    hideLoader(); // Hide loader if no category
+                    return;
+                }
+                
+                if (!$('#form-loader').is(':visible')) {
+                    showLoader();
+                }
+                
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    type: 'POST',
+                    data: {
+                        action: 'get_proyecto_projects',
+                        category: categorySlug,
+                        tag: tagSlug
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.length > 0) {
+                            $('#proyecto_especifico').empty().append('<option value=""><?php _e('Selecciona un proyecto', 'proyectos-grid'); ?></option>');
+                            $.each(response.data, function(index, project) {
+                                // Remove parentheses for comparison
+                                var cleanTitle = project.title.replace(/[()]/g, '');
+                                var cleanInitial = initialService.replace(/[()]/g, '');
+                                var selected = (cleanTitle === cleanInitial || project.title === initialService) ? 'selected' : '';
+                                $('#proyecto_especifico').append('<option value="' + project.id + '" ' + selected + '>' + project.title + '</option>');
+                            });
+                            $('#proyecto-field').show();
+                            updateRequiredFields();
+                        } else {
+                            $('#proyecto-field').hide();
+                            updateRequiredFields();
+                        }
+                        hideLoader();
+                    },
+                    error: function() {
+                        hideLoader();
+                    }
+                });
+            }
+            
+            // Category change handler
+            $('#interes_principal').change(function() {
+                var categorySlug = $(this).val();
+                // Reset initial tag when category changes manually
+                if (categorySlug !== initialCategory) {
+                    initialTag = '';
+                }
+                loadTags(categorySlug);
+            });
+            
+            // Tag change handler - using event delegation since modalidad field can be dynamically created
+            $(document).on('change', '#modalidad', function() {
+                var categorySlug = $('#interes_principal').val();
+                var tagSlug = $(this).val();
+                loadProjects(categorySlug, tagSlug);
+            });
+            
+            if (initialCategory) {
+                // Trigger the change event immediately to load dependent fields
+                $('#interes_principal').trigger('change');
+            }
+        });
+        </script>
+        <?php
+        return ob_get_clean();
+    }
+    
     private function render_proyecto_card($post_id) {
         $post = get_post($post_id);
         $valor = get_post_meta($post_id, '_proyecto_valor', true);
@@ -367,7 +737,10 @@ class ProyectosPlugin {
         $categorias = get_the_terms($post_id, 'proyecto_categoria');
         $primera_categoria = $categorias && !is_wp_error($categorias) ? $categorias[0]->slug : '';
         
-        // Enlace del botón (personalizado o base)
+        $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
+        $primera_etiqueta = $etiquetas && !is_wp_error($etiquetas) ? $etiquetas[0]->name : '';
+        $primera_etiqueta_slug = $etiquetas && !is_wp_error($etiquetas) ? $etiquetas[0]->slug : '';
+        
         if (!empty($enlace_personalizado)) {
             $enlace_boton = $enlace_personalizado;
         } else {
@@ -377,10 +750,11 @@ class ProyectosPlugin {
             if (!empty($primera_categoria)) {
                 $enlace_boton .= '&category=' . urlencode($primera_categoria);
             }
+            // Add tag parameter if exists
+            if (!empty($primera_etiqueta_slug)) {
+                $enlace_boton .= '&tag=' . urlencode($primera_etiqueta_slug);
+            }
         }
-        
-        $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
-        $primera_etiqueta = $etiquetas && !is_wp_error($etiquetas) ? $etiquetas[0]->name : '';
         
         $imagen = get_the_post_thumbnail($post_id, 'medium', array('class' => 'proyecto-imagen'));
         if (empty($imagen)) {
@@ -427,6 +801,106 @@ class ProyectosPlugin {
         <?php
         return ob_get_clean();
     }
+}
+
+add_action('wp_ajax_get_proyecto_tags', 'handle_get_proyecto_tags');
+add_action('wp_ajax_nopriv_get_proyecto_tags', 'handle_get_proyecto_tags');
+
+function handle_get_proyecto_tags() {
+    $category_slug = sanitize_text_field($_POST['category']);
+    
+    // Get projects in this category
+    $projects = get_posts(array(
+        'post_type' => 'proyecto',
+        'posts_per_page' => -1,
+        'tax_query' => array(
+            array(
+                'taxonomy' => 'proyecto_categoria',
+                'field' => 'slug',
+                'terms' => $category_slug
+            )
+        )
+    ));
+    
+    $tags = array();
+    foreach ($projects as $project) {
+        $project_tags = get_the_terms($project->ID, 'proyecto_etiqueta');
+        if ($project_tags && !is_wp_error($project_tags)) {
+            foreach ($project_tags as $tag) {
+                if (!isset($tags[$tag->slug])) {
+                    $tags[$tag->slug] = array(
+                        'name' => $tag->name,
+                        'slug' => $tag->slug
+                    );
+                }
+            }
+        }
+    }
+    
+    wp_send_json_success(array_values($tags));
+}
+
+add_action('wp_ajax_get_proyecto_projects', 'handle_get_proyecto_projects');
+add_action('wp_ajax_nopriv_get_proyecto_projects', 'handle_get_proyecto_projects');
+
+function handle_get_proyecto_projects() {
+    $category_slug = sanitize_text_field($_POST['category']);
+    $tag_slug = sanitize_text_field($_POST['tag']);
+    
+    $tax_query = array(
+        array(
+            'taxonomy' => 'proyecto_categoria',
+            'field' => 'slug',
+            'terms' => $category_slug
+        )
+    );
+    
+    if (!empty($tag_slug)) {
+        $tax_query[] = array(
+            'taxonomy' => 'proyecto_etiqueta',
+            'field' => 'slug',
+            'terms' => $tag_slug
+        );
+    }
+    
+    $projects = get_posts(array(
+        'post_type' => 'proyecto',
+        'posts_per_page' => -1,
+        'tax_query' => $tax_query,
+        'orderby' => array(
+            'menu_order' => 'ASC',
+            'date' => 'DESC'
+        )
+    ));
+    
+    $project_list = array();
+    foreach ($projects as $project) {
+        $project_list[] = array(
+            'id' => $project->ID,
+            'title' => $project->post_title
+        );
+    }
+    
+    wp_send_json_success($project_list);
+}
+
+add_action('wp_ajax_get_category_singular_name', 'handle_get_category_singular_name');
+add_action('wp_ajax_nopriv_get_category_singular_name', 'handle_get_category_singular_name');
+
+function handle_get_category_singular_name() {
+    $category_slug = sanitize_text_field($_POST['category']);
+    
+    $term = get_term_by('slug', $category_slug, 'proyecto_categoria');
+    if ($term) {
+        $nombre_singular = get_term_meta($term->term_id, 'nombre_singular', true);
+        if (!empty($nombre_singular)) {
+            wp_send_json_success($nombre_singular);
+        } else {
+            wp_send_json_success($term->name);
+        }
+    }
+    
+    wp_send_json_error();
 }
 
 new ProyectosPlugin();
