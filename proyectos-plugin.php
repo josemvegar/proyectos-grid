@@ -364,6 +364,9 @@ class ProyectosPlugin {
         
         $enlace_proyecto = get_permalink($post_id); // Para imagen y título
         
+        $categorias = get_the_terms($post_id, 'proyecto_categoria');
+        $primera_categoria = $categorias && !is_wp_error($categorias) ? $categorias[0]->slug : '';
+        
         // Enlace del botón (personalizado o base)
         if (!empty($enlace_personalizado)) {
             $enlace_boton = $enlace_personalizado;
@@ -371,6 +374,9 @@ class ProyectosPlugin {
             $enlace_base = get_option('proyectos_enlace_base', home_url('/contacto'));
             $service_param = urlencode($post->post_title);
             $enlace_boton = $enlace_base . '?service=' . $service_param;
+            if (!empty($primera_categoria)) {
+                $enlace_boton .= '&category=' . urlencode($primera_categoria);
+            }
         }
         
         $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
