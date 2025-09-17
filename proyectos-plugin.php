@@ -434,7 +434,7 @@ class ProyectosPlugin {
         ob_start();
         ?>
         <div class="proyectos-form-container">
-            <form method="post" action="">
+            <form method="post" action="" id="proyectos-form">
                 <!-- Separating basic fields into individual form-row divs for proper 2-column layout -->
                 <div class="proyectos-form">
                     <div class="form-row">
@@ -517,6 +517,16 @@ class ProyectosPlugin {
                     <div class="spinner"></div>
                     <p><?php _e('Cargando...', 'proyectos-grid'); ?></p>
                 </div>
+            </div>
+            
+            <!-- Added success message container -->
+            <div id="form-success-message" class="form-success-message" style="display: none;">
+                <p><?php _e('Consulta enviada exitosamente.', 'proyectos-grid'); ?></p>
+            </div>
+            
+            <!-- Added error message container -->
+            <div id="form-error-message" class="form-error-message" style="display: none;">
+                <p><?php _e('Error al enviar la consulta.', 'proyectos-grid'); ?></p>
             </div>
         </div>
         
@@ -709,6 +719,33 @@ class ProyectosPlugin {
                 var categorySlug = $('#interes_principal').val();
                 var tagSlug = $(this).val();
                 loadProjects(categorySlug, tagSlug);
+            });
+            
+            // Form submission handler
+            $('#proyectos-form').submit(function(e) {
+                e.preventDefault();
+                var formData = $(this).serialize();
+                
+                showLoader();
+                
+                $.ajax({
+                    url: proyectos_ajax.ajax_url,
+                    type: 'POST',
+                    data: formData + '&action=submit_proyecto_form&nonce=' + proyectos_ajax.nonce,
+                    success: function(response) {
+                        hideLoader();
+                        if (response.success) {
+                            $('#form-success-message').show();
+                            $('#proyectos-form')[0].reset();
+                        } else {
+                            $('#form-error-message').show();
+                        }
+                    },
+                    error: function() {
+                        hideLoader();
+                        $('#form-error-message').show();
+                    }
+                });
             });
             
             if (initialCategory) {
@@ -910,6 +947,49 @@ function handle_get_category_singular_name() {
     }
     
     wp_send_json_error();
+}
+
+add_action('wp_ajax_submit_proyecto_form', 'handle_submit_proyecto_form');
+add_action('wp_ajax_nopriv_submit_proyecto_form', 'handle_submit_proyecto_form');
+
+function handle_submit_proyecto_form() {
+    // Verify nonce
+    if (!wp_verify_nonce($_POST['nonce'], 'proyectos_form_nonce')) {
+        wp_send_json_error('Nonce verification failed');
+    }
+    
+    // Get form data
+    $nombre = sanitize_text_field($_POST['nombre']);
+    $apellido = sanitize_text_field($_POST['apellido']);
+    $telefono = sanitize_text_field($_POST['telefono']);
+    $email = sanitize_email($_POST['email']);
+    $interes_principal = sanitize_text_field($_POST['interes_principal']);
+    $modalidad = sanitize_text_field($_POST['modalidad']);
+    $proyecto_especifico = sanitize_text_field($_POST['proyecto_especifico']);
+    $motivacion = sanitize_textarea_field($_POST['motivacion']);
+    
+    // Get email configuration
+    $email_receptores = get_option('proyectos_email_receptores', get_option('admin_email'));
+    $email_template = get_option('proyectos_email_template', 'Nuevo mensaje de contacto');
+    
+    // Replace placeholders in email template
+    $email_body = str_replace(
+        array('[nombre]', '[apellido]', '[telefono]', '[email]', '[interes_principal]', '[modalidad]', '[proyecto_especifico]', '[motivacion]'),
+        array($nombre, $apellido, $telefono, $email, $interes_principal, $modalidad, $proyecto_especifico, $motivacion),
+        $email_template
+    );
+    
+    // Send email
+    $subject = 'Nueva consulta de proyecto - ' . $nombre . ' ' . $apellido;
+    $headers = array('Content-Type: text/html; charset=UTF-8');
+    
+    $sent = wp_mail($email_receptores, $subject, nl2br($email_body), $headers);
+    
+    if ($sent) {
+        wp_send_json_success('Consulta enviada exitosamente');
+    } else {
+        wp_send_json_error('Error al enviar la consulta');
+    }
 }
 
 new ProyectosPlugin();
