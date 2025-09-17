@@ -3,7 +3,7 @@
  * Plugin Name: Proyectos Grid
  * Description: Plugin personalizado para mostrar proyectos en una grilla responsive con administración completa.
  * Version: 1.0.0
- * Author: Tu Nombre
+ * Author: José Vega
  * Text Domain: proyectos-grid
  * Domain Path: /languages
  */
@@ -210,6 +210,7 @@ class ProyectosPlugin {
         $valor = get_post_meta($post->ID, '_proyecto_valor', true);
         $moneda_individual = get_post_meta($post->ID, '_proyecto_moneda', true);
         $enlace_personalizado = get_post_meta($post->ID, '_proyecto_enlace_personalizado', true);
+        $menu_order = get_post_meta($post->ID, '_proyecto_orden', true);
         
         ?>
         <table class="form-table">
@@ -246,6 +247,15 @@ class ProyectosPlugin {
                     <p class="description"><?php _e('Deja vacío para usar el enlace base global con el parámetro service.', 'proyectos-grid'); ?></p>
                 </td>
             </tr>
+            <tr>
+                <th scope="row">
+                    <label for="proyecto_orden"><?php _e('Orden en el menú', 'proyectos-grid'); ?></label>
+                </th>
+                <td>
+                    <input type="number" name="proyecto_orden" id="proyecto_orden" value="<?php echo esc_attr($menu_order); ?>" min="0" step="1" />
+                    <p class="description"><?php _e('Los proyectos se ordenarán de menor a mayor número. Deja vacío para orden por fecha.', 'proyectos-grid'); ?></p>
+                </td>
+            </tr>
         </table>
         <?php
     }
@@ -274,6 +284,10 @@ class ProyectosPlugin {
         if (isset($_POST['proyecto_enlace_personalizado'])) {
             update_post_meta($post_id, '_proyecto_enlace_personalizado', esc_url_raw($_POST['proyecto_enlace_personalizado']));
         }
+        
+        if (isset($_POST['proyecto_orden'])) {
+            update_post_meta($post_id, '_proyecto_orden', intval($_POST['proyecto_orden']));
+        }
     }
     
     public function enqueue_frontend_styles() {
@@ -296,7 +310,23 @@ class ProyectosPlugin {
         $args = array(
             'post_type' => 'proyecto',
             'post_status' => 'publish',
-            'posts_per_page' => intval($atts['posts_per_page'])
+            'posts_per_page' => intval($atts['posts_per_page']),
+            'meta_key' => '_proyecto_orden',
+            'orderby' => array(
+                'meta_value_num' => 'ASC',
+                'date' => 'DESC'
+            ),
+            'meta_query' => array(
+                'relation' => 'OR',
+                array(
+                    'key' => '_proyecto_orden',
+                    'compare' => 'EXISTS'
+                ),
+                array(
+                    'key' => '_proyecto_orden',
+                    'compare' => 'NOT EXISTS'
+                )
+            )
         );
         
         if (!empty($atts['category'])) {
@@ -334,10 +364,8 @@ class ProyectosPlugin {
         $moneda_individual = get_post_meta($post_id, '_proyecto_moneda', true);
         $enlace_personalizado = get_post_meta($post_id, '_proyecto_enlace_personalizado', true);
         
-        // Determinar moneda a usar
         $moneda = !empty($moneda_individual) ? $moneda_individual : get_option('proyectos_moneda_global', 'CLP');
         
-        // Construir enlace
         if (!empty($enlace_personalizado)) {
             $enlace = $enlace_personalizado;
         } else {
@@ -346,11 +374,9 @@ class ProyectosPlugin {
             $enlace = $enlace_base . '?service=' . $service_param;
         }
         
-        // Obtener etiquetas
         $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
         $primera_etiqueta = $etiquetas && !is_wp_error($etiquetas) ? $etiquetas[0]->name : '';
         
-        // Obtener imagen destacada
         $imagen = get_the_post_thumbnail($post_id, 'medium', array('class' => 'proyecto-imagen'));
         if (empty($imagen)) {
             $imagen = '<div class="proyecto-imagen-placeholder"></div>';
@@ -360,22 +386,28 @@ class ProyectosPlugin {
         ?>
         <div class="proyecto-card">
             <div class="proyecto-imagen-container">
-                <?php echo $imagen; ?>
+                <a href="<?php echo esc_url($enlace); ?>" class="proyecto-link">
+                    <?php echo $imagen; ?>
+                </a>
             </div>
             <div class="proyecto-contenido">
-                <h3 class="proyecto-titulo"><?php echo esc_html($post->post_title); ?></h3>
+                <h3 class="proyecto-titulo">
+                    <a href="<?php echo esc_url($enlace); ?>" class="proyecto-link">
+                        <?php echo esc_html($post->post_title); ?>
+                    </a>
+                </h3>
                 <div class="proyecto-descripcion">
                     <?php echo wp_trim_words($post->post_content, 20, '...'); ?>
                 </div>
                 <div class="proyecto-precio">
                     <?php _e('Valor:', 'proyectos-grid'); ?> $<?php echo number_format($valor, 0, ',', '.'); ?> <?php echo esc_html($moneda); ?>
                 </div>
-                <div class="proyecto-footer">
-                    <div class="proyecto-etiqueta">
-                        <?php if ($primera_etiqueta): ?>
+                <div class="proyecto-footer <?php echo empty($primera_etiqueta) ? 'sin-etiqueta' : ''; ?>">
+                    <?php if ($primera_etiqueta): ?>
+                        <div class="proyecto-etiqueta">
                             <span class="etiqueta"><?php echo esc_html($primera_etiqueta); ?></span>
-                        <?php endif; ?>
-                    </div>
+                        </div>
+                    <?php endif; ?>
                     <div class="proyecto-boton">
                         <a href="<?php echo esc_url($enlace); ?>" class="btn-inscribirse">
                             <?php _e('Inscríbete hoy', 'proyectos-grid'); ?>
@@ -389,5 +421,4 @@ class ProyectosPlugin {
     }
 }
 
-// Inicializar el plugin
 new ProyectosPlugin();

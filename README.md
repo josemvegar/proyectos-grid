@@ -8,7 +8,7 @@ Plugin personalizado para WordPress que permite crear y mostrar proyectos en una
 - **Custom Post Type**: "Proyectos" con soporte completo
 - **Taxonomía jerárquica**: Categorías de proyecto
 - **Taxonomía no jerárquica**: Etiquetas de proyecto
-- **Campos personalizados**: Valor, moneda individual, enlace personalizado
+- **Campos personalizados**: Valor, moneda individual, enlace personalizado, orden en el menú
 
 ### Administración
 - Menú administrativo completo: "Proyectos" > "Todos los proyectos", "Añadir nuevo", "Configuración"
@@ -21,6 +21,12 @@ Plugin personalizado para WordPress que permite crear y mostrar proyectos en una
 - Cada proyecto puede usar moneda global o individual (override)
 - Enlace del botón se construye automáticamente: `[enlace_base] + "?service=" + [título_del_servicio_url_encoded]`
 - Posibilidad de enlace personalizado por proyecto
+
+### Sistema de Ordenamiento
+- **Campo "Orden en el menú"**: Similar al sistema de WooCommerce
+- Los proyectos se ordenan de menor a mayor número
+- Si no se especifica orden, se usa la fecha de publicación (más reciente primero)
+- Permite control total sobre la secuencia de visualización
 
 ### Frontend - Shortcode
 - **Shortcode**: `[proyectos_grid]`
@@ -42,9 +48,10 @@ Cada tarjeta incluye:
 - Bordes redondeados y sombras sutiles
 
 ### ⚠️ Importante: Interactividad de las Tarjetas
-- **Solo el botón "Inscríbete hoy" es clickeable** y redirige al enlace configurado
-- **El resto de la tarjeta NO es clickeable** (imagen, título, descripción, precio)
-- Esta funcionalidad está diseñada para evitar confusión y dirigir la acción específicamente al botón de contacto
+- **La imagen y el título SON clickeables** y redirigen al enlace configurado del proyecto
+- **El botón "Inscríbete hoy" también es clickeable** y va al mismo enlace
+- **Botón full width**: Si el proyecto no tiene etiquetas, el botón ocupa todo el ancho disponible
+- Esta funcionalidad permite múltiples puntos de acceso al proyecto
 
 ## Instalación
 
@@ -89,6 +96,20 @@ Para filtrar por categoría, usa el **slug** de la categoría (no el nombre):
 \`\`\`
 [proyectos_grid category="diseno" posts_per_page="4"]
 \`\`\`
+
+## Configuración del Orden
+
+### En el Editor de Proyectos
+1. Ve a "Proyectos" > "Todos los proyectos"
+2. Edita cualquier proyecto
+3. En la sección "Detalles del Proyecto" encontrarás el campo "Orden en el menú"
+4. Ingresa un número (ej: 1, 2, 3, etc.)
+5. Los proyectos se mostrarán ordenados de menor a mayor número
+
+### Ejemplos de Ordenamiento
+- Proyecto A: Orden = 1 (se muestra primero)
+- Proyecto B: Orden = 5 (se muestra segundo)
+- Proyecto C: Sin orden definido (se muestra al final, por fecha)
 
 ## Estructura de Archivos
 
