@@ -800,7 +800,7 @@ class ProyectosPlugin {
             }
         }
         
-        $imagen = get_the_post_thumbnail($post_id, 'medium', array('class' => 'proyecto-imagen'));
+        $imagen = get_the_post_thumbnail($post_id, 'full', array('class' => 'proyecto-imagen'));
         if (empty($imagen)) {
             $imagen = '<div class="proyecto-imagen-placeholder"></div>';
         }
