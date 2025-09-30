@@ -281,6 +281,7 @@ class ProyectosPlugin {
         $moneda_individual = get_post_meta($post->ID, '_proyecto_moneda', true);
         $enlace_personalizado = get_post_meta($post->ID, '_proyecto_enlace_personalizado', true);
         $menu_order = get_post_meta($post->ID, '_proyecto_orden', true);
+        $pago_mensual = get_post_meta($post->ID, '_proyecto_pago_mensual', true);
         
         ?>
         <table class="form-table">
@@ -290,6 +291,16 @@ class ProyectosPlugin {
                 </th>
                 <td>
                     <input type="number" name="proyecto_valor" id="proyecto_valor" value="<?php echo esc_attr($valor); ?>" step="0.01" min="0" />
+                </td>
+            </tr>
+             <!-- CHANGE: Add monthly payment checkbox -->
+            <tr>
+                <th scope="row">
+                    <label for="proyecto_pago_mensual"><?php _e('¿Pago mensual?', 'proyectos-grid'); ?></label>
+                </th>
+                <td>
+                    <input type="checkbox" name="proyecto_pago_mensual" id="proyecto_pago_mensual" value="1" <?php checked($pago_mensual, '1'); ?> />
+                    <p class="description"><?php _e('Marca esta casilla si el precio es un pago mensual.', 'proyectos-grid'); ?></p>
                 </td>
             </tr>
             <tr>
@@ -345,6 +356,12 @@ class ProyectosPlugin {
         
         if (isset($_POST['proyecto_valor'])) {
             update_post_meta($post_id, '_proyecto_valor', floatval($_POST['proyecto_valor']));
+        }
+        
+        if (isset($_POST['proyecto_pago_mensual'])) {
+            update_post_meta($post_id, '_proyecto_pago_mensual', '1');
+        } else {
+            delete_post_meta($post_id, '_proyecto_pago_mensual');
         }
         
         if (isset($_POST['proyecto_moneda'])) {
@@ -764,6 +781,7 @@ class ProyectosPlugin {
         $moneda_individual = get_post_meta($post_id, '_proyecto_moneda', true);
         $enlace_personalizado = get_post_meta($post_id, '_proyecto_enlace_personalizado', true);
         $menu_order = get_post_meta($post_id, '_proyecto_orden', true);
+        $pago_mensual = get_post_meta($post_id, '_proyecto_pago_mensual', true);
         
         if (!empty($menu_order)) {
             wp_update_post(array(
@@ -800,7 +818,7 @@ class ProyectosPlugin {
             }
         }
         
-        $imagen = get_the_post_thumbnail($post_id, 'full', array('class' => 'proyecto-imagen'));
+        $imagen = get_the_post_thumbnail($post_id, 'medium', array('class' => 'proyecto-imagen'));
         if (empty($imagen)) {
             $imagen = '<div class="proyecto-imagen-placeholder"></div>';
         }
@@ -825,7 +843,13 @@ class ProyectosPlugin {
                     <?php echo wp_trim_words($post->post_content, 20, '...'); ?>
                 </div>
                 <div class="proyecto-precio">
-                    <?php _e('Valor:', 'proyectos-grid'); ?> $<?php echo number_format($valor, 0, ',', '.'); ?> <?php echo esc_html($moneda); ?>
+                    <?php 
+                    _e('Valor:', 'proyectos-grid'); 
+                    ?> $<?php echo number_format($valor, 0, ',', '.'); ?> <?php echo esc_html($moneda); ?><?php 
+                    if ($pago_mensual == '1') {
+                        echo ' (Mensual)';
+                    }
+                    ?>
                 </div>
                 <div class="proyecto-footer <?php echo empty($etiquetas_mostrar) ? 'sin-etiqueta' : ''; ?>">
                     <?php if (!empty($etiquetas_mostrar)): ?>
@@ -993,3 +1017,5 @@ function handle_submit_proyecto_form() {
 }
 
 new ProyectosPlugin();
+
+?>
