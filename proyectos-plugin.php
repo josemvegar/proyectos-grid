@@ -818,7 +818,7 @@ class ProyectosPlugin {
             }
         }
         
-        $imagen = get_the_post_thumbnail($post_id, 'full', array('class' => 'proyecto-imagen'));
+        $imagen = get_the_post_thumbnail($post_id, 'medium', array('class' => 'proyecto-imagen'));
         if (empty($imagen)) {
             $imagen = '<div class="proyecto-imagen-placeholder"></div>';
         }
@@ -989,17 +989,37 @@ function handle_submit_proyecto_form() {
     $email = sanitize_email($_POST['email']);
     $interes_principal = sanitize_text_field($_POST['interes_principal']);
     $modalidad = sanitize_text_field($_POST['modalidad']);
-    $proyecto_especifico = sanitize_text_field($_POST['proyecto_especifico']);
+    $proyecto_especifico_id = sanitize_text_field($_POST['proyecto_especifico']);
     $motivacion = sanitize_textarea_field($_POST['motivacion']);
+    
+    $proyecto_especifico_nombre = '';
+    if (!empty($proyecto_especifico_id)) {
+        $proyecto_especifico_nombre = get_the_title($proyecto_especifico_id);
+    }
+    
+    $interes_principal_nombre = '';
+    if (!empty($interes_principal)) {
+        $term = get_term_by('slug', $interes_principal, 'proyecto_categoria');
+        if ($term) {
+            $interes_principal_nombre = $term->name;
+        }
+    }
+    
+    $modalidad_nombre = '';
+    if (!empty($modalidad)) {
+        $term = get_term_by('slug', $modalidad, 'proyecto_etiqueta');
+        if ($term) {
+            $modalidad_nombre = $term->name;
+        }
+    }
     
     // Get email configuration
     $email_receptores = get_option('proyectos_email_receptores', get_option('admin_email'));
     $email_template = get_option('proyectos_email_template', 'Nuevo mensaje de contacto');
     
-    // Replace placeholders in email template
     $email_body = str_replace(
         array('[nombre]', '[apellido]', '[telefono]', '[email]', '[interes_principal]', '[modalidad]', '[proyecto_especifico]', '[motivacion]'),
-        array($nombre, $apellido, $telefono, $email, $interes_principal, $modalidad, $proyecto_especifico, $motivacion),
+        array($nombre, $apellido, $telefono, $email, $interes_principal_nombre, $modalidad_nombre, $proyecto_especifico_nombre, $motivacion),
         $email_template
     );
     
