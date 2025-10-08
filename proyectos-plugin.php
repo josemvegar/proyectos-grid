@@ -148,11 +148,18 @@ class ProyectosPlugin {
             <input type="text" name="nombre_singular" id="nombre_singular" value="" />
             <p class="description"><?php _e('Nombre singular para usar en formularios (ej: "curso", "terapia"). Si está vacío, se usará el título de la categoría.', 'proyectos-grid'); ?></p>
         </div>
+         <!-- CHANGE: Add button text field for category -->
+        <div class="form-field">
+            <label for="texto_boton_categoria"><?php _e('Texto del Botón', 'proyectos-grid'); ?></label>
+            <input type="text" name="texto_boton_categoria" id="texto_boton_categoria" value="" />
+            <p class="description"><?php _e('Texto personalizado para el botón de esta categoría. Si está vacío, se usará el texto por defecto configurado en Configuración.', 'proyectos-grid'); ?></p>
+        </div>
         <?php
     }
     
     public function edit_category_fields($term) {
         $nombre_singular = get_term_meta($term->term_id, 'nombre_singular', true);
+        $texto_boton_categoria = get_term_meta($term->term_id, 'texto_boton_categoria', true);
         ?>
         <tr class="form-field">
             <th scope="row">
@@ -163,12 +170,25 @@ class ProyectosPlugin {
                 <p class="description"><?php _e('Nombre singular para usar en formularios (ej: "curso", "terapia"). Si está vacío, se usará el título de la categoría.', 'proyectos-grid'); ?></p>
             </td>
         </tr>
+         <!-- CHANGE: Add button text field for category -->
+        <tr class="form-field">
+            <th scope="row">
+                <label for="texto_boton_categoria"><?php _e('Texto del Botón', 'proyectos-grid'); ?></label>
+            </th>
+            <td>
+                <input type="text" name="texto_boton_categoria" id="texto_boton_categoria" value="<?php echo esc_attr($texto_boton_categoria); ?>" />
+                <p class="description"><?php _e('Texto personalizado para el botón de esta categoría. Si está vacío, se usará el texto por defecto configurado en Configuración.', 'proyectos-grid'); ?></p>
+            </td>
+        </tr>
         <?php
     }
     
     public function save_category_fields($term_id) {
         if (isset($_POST['nombre_singular'])) {
             update_term_meta($term_id, 'nombre_singular', sanitize_text_field($_POST['nombre_singular']));
+        }
+        if (isset($_POST['texto_boton_categoria'])) {
+            update_term_meta($term_id, 'texto_boton_categoria', sanitize_text_field($_POST['texto_boton_categoria']));
         }
     }
     
@@ -189,6 +209,7 @@ class ProyectosPlugin {
             update_option('proyectos_enlace_base', esc_url_raw($_POST['enlace_base']));
             update_option('proyectos_email_receptores', sanitize_textarea_field($_POST['email_receptores']));
             update_option('proyectos_email_template', sanitize_textarea_field($_POST['email_template']));
+            update_option('proyectos_texto_boton_default', sanitize_text_field($_POST['texto_boton_default']));
             echo '<div class="notice notice-success"><p>' . __('Configuración guardada correctamente.', 'proyectos-grid') . '</p></div>';
         }
         
@@ -196,6 +217,7 @@ class ProyectosPlugin {
         $enlace_base = get_option('proyectos_enlace_base', home_url('/contacto'));
         $email_receptores = get_option('proyectos_email_receptores', get_option('admin_email'));
         $email_template = get_option('proyectos_email_template', "Nuevo mensaje de contacto:\n\nNombre: [nombre]\nApellido: [apellido]\nTeléfono: [telefono]\nEmail: [email]\nInterés Principal: [interes_principal]\nModalidad: [modalidad]\nProyecto Específico: [proyecto_especifico]\nMotivación: [motivacion]");
+        $texto_boton_default = get_option('proyectos_texto_boton_default', 'Inscríbete hoy');
         
         ?>
         <div class="wrap">
@@ -226,7 +248,16 @@ class ProyectosPlugin {
                             <p class="description"><?php _e('Ejemplo: https://misitio.com/contacto', 'proyectos-grid'); ?></p>
                         </td>
                     </tr>
-                    <!-- Adding email receptors configuration field -->
+                    <!-- CHANGE: Add default button text field -->
+                    <tr>
+                        <th scope="row">
+                            <label for="texto_boton_default"><?php _e('Texto del Botón por Defecto', 'proyectos-grid'); ?></label>
+                        </th>
+                        <td>
+                            <input type="text" name="texto_boton_default" id="texto_boton_default" value="<?php echo esc_attr($texto_boton_default); ?>" class="regular-text" />
+                            <p class="description"><?php _e('Texto que aparecerá en el botón de cada proyecto. Ejemplo: "Inscríbete hoy", "Más información", "Contactar"', 'proyectos-grid'); ?></p>
+                        </td>
+                    </tr>
                     <tr>
                         <th scope="row">
                             <label for="email_receptores"><?php _e('Correos Receptores', 'proyectos-grid'); ?></label>
@@ -236,7 +267,6 @@ class ProyectosPlugin {
                             <p class="description"><?php _e('Ingresa los correos donde se enviarán los formularios. Separa múltiples correos con comas. Ejemplo: admin@sitio.com, ventas@sitio.com', 'proyectos-grid'); ?></p>
                         </td>
                     </tr>
-                    <!-- Adding email template configuration field -->
                     <tr>
                         <th scope="row">
                             <label for="email_template"><?php _e('Plantilla de Correo', 'proyectos-grid'); ?></label>
@@ -797,6 +827,14 @@ class ProyectosPlugin {
         $categorias = get_the_terms($post_id, 'proyecto_categoria');
         $primera_categoria = $categorias && !is_wp_error($categorias) ? $categorias[0]->slug : '';
         
+        $texto_boton = get_option('proyectos_texto_boton_default', 'Inscríbete hoy');
+        if ($categorias && !is_wp_error($categorias)) {
+            $texto_boton_categoria = get_term_meta($categorias[0]->term_id, 'texto_boton_categoria', true);
+            if (!empty($texto_boton_categoria)) {
+                $texto_boton = $texto_boton_categoria;
+            }
+        }
+        
         $etiquetas = get_the_terms($post_id, 'proyecto_etiqueta');
         $etiquetas_mostrar = array();
         if ($etiquetas && !is_wp_error($etiquetas)) {
@@ -860,9 +898,9 @@ class ProyectosPlugin {
                         </div>
                     <?php endif; ?>
                     <div class="proyecto-boton">
-                        <!-- Botón usa el enlace personalizado/base -->
+                         <!-- CHANGE: Use dynamic button text -->
                         <a href="<?php echo esc_url($enlace_boton); ?>" class="btn-inscribirse">
-                            <?php _e('Inscríbete hoy', 'proyectos-grid'); ?>
+                            <?php echo esc_html($texto_boton); ?>
                         </a>
                     </div>
                 </div>
