@@ -279,6 +279,11 @@
   flex-direction: column;
 }
 
+#proyectos-form .form-field {
+  width: 100% !important;
+  margin-bottom: 15px !important;
+}
+
 .form-field.full-width {
   grid-column: 1 / -1;
 }
